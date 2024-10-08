@@ -8,5 +8,9 @@ urlpatterns = [
 
     # ACTIONS
     path('fetch-leagues/', views.fetch_and_save_leagues, name='fetch_and_save_leagues'),
-    path('fetch-matches/', views.fetch_and_save_leagues, name='fetch_and_save_matches'),
+    path('fetch-matches/', views.fetch_and_save_matches, name='fetch_and_save_matches'),
+    path('fetch-standings/', views.fetch_and_save_standings, name='fetch_and_save_standings'),
+    path('fetch-teams/', views.fetch_and_save_teams, name='fetch_and_save_teams'),
+
+
 ]

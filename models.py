@@ -21,19 +21,13 @@ class League(models.Model):  # request("GET", "/v3/leagues", headers=headers)
     name = models.CharField(max_length=255, db_index=True)
     type = models.CharField(max_length=50)  # Type ('League' or 'Cup')
     image = models.URLField(blank=True, null=True)
-    country = models.CharField(max_length=255)
-    country_code = models.CharField(max_length=10)
+    country = models.CharField(max_length=255, null=True)
+    country_code = models.CharField(max_length=10, null=True)
     country_flag = models.URLField(blank=True, null=True)
-    slug = models.SlugField(max_length=255, unique=True, blank=True)  # Thêm slug cho URL thân thiện
 
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
-
+    
 #---------------------------------------------------------------------------------------------------------------
 class LeagueTeam(models.Model):
     id = models.AutoField(primary_key=True)
@@ -46,36 +40,31 @@ class LeagueTeam(models.Model):
         return f"{self.league_name} - {self.team_name}"
 
 #---------------------------------------------------------------------------------------------------------------
-class Team(models.Model):  # request("GET", "/v3/teams?id={33}", headers=headers) . Need to find teamsid from Match
+class Team(models.Model):  # request("GET", "/v3/teams?id={33}", headers=headers) . Need to find teamsid from League Standing
     id = models.AutoField(primary_key=True)  # Sử dụng AutoField cho id tự động tăng
-    api_id = models.IntegerField(null=True, blank=True, db_index=True, unique=True)  # ID từ API-FOOTBALL
+    api_id = models.IntegerField( null=True, blank=True, db_index=True, unique=True)  # ID từ API-FOOTBALL
     name = models.CharField(max_length=255, db_index=True)
     code = models.CharField(max_length=10, blank=True, null=True)
     country = models.CharField(max_length=255)
     founded = models.IntegerField(null=True, blank=True)
     image = models.URLField(blank=True, null=True)
+    venue_id = models.IntegerField(null=True, blank=True, db_index=True, unique=True)
     venue_name = models.CharField(max_length=255)
     venue_address = models.CharField(max_length=255, blank=True, null=True)
     venue_city = models.CharField(max_length=255, blank=True, null=True)
     venue_capacity = models.IntegerField(blank=True, null=True)
     venue_surface = models.CharField(max_length=50, blank=True, null=True)
     venue_image = models.URLField(blank=True, null=True)
-    slug = models.SlugField(max_length=255, unique=True, blank=True)  # Thêm slug cho URL thân thiện
 
     def __str__(self):
         return self.name
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(self.name)
-        super().save(*args, **kwargs)
 
 #---------------------------------------------------------------------------------------------------------------
 class Match(models.Model):  #request("GET", "/v3/fixtures?league={39}&season={2020}", headers=headers)
     id = models.AutoField(primary_key=True)  # Sử dụng AutoField cho id tự động tăng
     api_id = models.IntegerField(null=True, blank=True, db_index=True, unique=True)  # ID từ API-FOOTBALL
     season = models.IntegerField(null=True, blank=True)
-    league = models.ForeignKey(League, to_field='api_id', related_name='matches', on_delete=models.CASCADE)
+    league_id = models.ForeignKey(League, to_field='api_id', related_name='matches', on_delete=models.CASCADE, unique=False)
     country_name = models.CharField(max_length=255)
     home = models.ForeignKey(Team, to_field='api_id', related_name='home_matches', on_delete=models.CASCADE)
     away = models.ForeignKey(Team, to_field='api_id', related_name='away_matches', on_delete=models.CASCADE)
@@ -93,20 +82,9 @@ class Match(models.Model):  #request("GET", "/v3/fixtures?league={39}&season={20
     et_away = models.IntegerField(null=True, blank=True)
     pk_home = models.IntegerField(null=True, blank=True)
     pk_away = models.IntegerField(null=True, blank=True)
-    slug = models.SlugField(max_length=255, unique=True, blank=True)  # Thêm slug cho URL thân thiện
 
     def __str__(self):
-        return f"{self.home} vs {self.away} - {self.league.name}"
-
-    def save(self, *args, **kwargs):
-        if not self.slug:
-            self.slug = slugify(f"{self.home.name}-vs-{self.away.name}-{self.date.date()}")
-        super().save(*args, **kwargs)
-
-    # def save(self, *args, **kwargs):
-    #     if not self.slug or self.home.name != self._loaded_values['home.name'] or self.away.name != self._loaded_values['away.name'] or self.date != self._loaded_values['date']:
-    #         self.slug = slugify(f"{self.home.name}-vs-{self.away.name}-{self.date.date()}")
-    #     super().save(*args, **kwargs)
+        return f"{self.home} vs {self.away} - {self.league_id}"
 
 #---------------------------------------------------------------------------------------------------------------
 class Player(models.Model):  # request("GET", "/v3/players?id={276}&season={2020}", headers=headers)
@@ -162,7 +140,7 @@ class Injury(models.Model):  # Crawling Data From Soccerway or Transfermarkt
 #---------------------------------------------------------------------------------------------------------------
 class TeamSeasonStatistics(models.Model):  #request("GET", "/v3/teams/statistics?league={39}&season={2020}&team={33}", headers=headers)
     id = models.AutoField(primary_key=True)  # Sử dụng AutoField cho ID
-    api_id = models.IntegerField(db_index=True, unique=True)  # Thêm trường api_id để lưu ID từ API
+    api_id = models.IntegerField(db_index=True)  # Thêm trường api_id để lưu ID từ API
     team = models.ForeignKey('Team', to_field='api_id', on_delete=models.CASCADE, related_name='season_statistics')
     league = models.ForeignKey('League', to_field='api_id', on_delete=models.CASCADE, related_name='season_statistics')
     
@@ -305,6 +283,29 @@ class PlayerSeasonStatistics(models.Model):    #request("GET", "/v3/players?leag
 
     def __str__(self):
         return f'{self.player.name} - {self.team.name} ({self.id})'
+
+#---------------------------------------------------------------------------------------------------------------
+class LeagueStanding(models.Model):
+    league_id = models.IntegerField()
+    league_name = models.CharField(max_length=100)
+    country_name = models.CharField(max_length=100)
+    season = models.IntegerField()
+    rank = models.IntegerField()
+    team_id = models.IntegerField()
+    team_name = models.CharField(max_length=100)
+    logo = models.URLField()
+    points = models.IntegerField()
+    goals_diff = models.IntegerField()
+    played = models.IntegerField()
+    win = models.IntegerField()
+    draw = models.IntegerField()
+    lose = models.IntegerField()
+    goals_for = models.IntegerField()
+    goals_against = models.IntegerField()
+    update_time = models.DateTimeField()
+
+    class Meta:
+        unique_together = ('league_id', 'season', 'rank')
 
 #---------------------------------------------------------------------------------------------------------------
 class StandingDescription(models.Model): #request("GET", "/v3/standings?league={39}&season={2020}", headers=headers)

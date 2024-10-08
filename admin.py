@@ -13,9 +13,9 @@ class LeagueAdmin(admin.ModelAdmin):
 
 #---------------------------------------------------------------------------------------------------------------
 class MatchAdmin(admin.ModelAdmin):
-    list_display = ('home', 'away', 'league', 'date', 'status')
+    list_display = ('home', 'away', 'league_id', 'date', 'status')
     search_fields = ('home__name', 'away__name', 'league__name', 'status')
-    list_filter = ('league', 'status', 'date')
+    list_filter = ('league_id', 'status', 'date')
 
 #---------------------------------------------------------------------------------------------------------------
 # REGISTER ADMIN
